@@ -1,0 +1,10 @@
+[package]
+name = "directrendering"
+version = "0.1.0"
+authors = ["Joao Neves <sevenjp@gmail.com>"]
+edition = "2018"
+links = "drm"
+build = "build.rs"
+
+[dependencies]
+libc = "0.2.0"
