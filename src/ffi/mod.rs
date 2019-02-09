@@ -151,12 +151,93 @@ pub fn drop_master(fd: RawFd) -> c_int {
 }
 
 #[derive(Debug)]
+pub struct DRMModeResFramebuffers {
+    count: usize,
+    fbs: *mut u32,
+}
+
+impl std::ops::Deref for DRMModeResFramebuffers {
+    type Target = [u32];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.fbs, self.count) }
+    }
+}
+
+impl Drop for DRMModeResFramebuffers {
+    fn drop(&mut self) {
+        unsafe { libc::free(self.fbs as *mut c_void) };
+    }
+}
+
+#[derive(Debug)]
+pub struct DRMModeResCrtcs {
+    count: usize,
+    crtcs: *mut u32,
+}
+
+impl std::ops::Deref for DRMModeResCrtcs {
+    type Target = [u32];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.crtcs, self.count) }
+    }
+}
+
+impl Drop for DRMModeResCrtcs {
+    fn drop(&mut self) {
+        unsafe { libc::free(self.crtcs as *mut c_void) };
+    }
+}
+
+#[derive(Debug)]
+pub struct DRMModeResConnectors {
+    count: usize,
+    conns: *mut u32,
+}
+
+impl std::ops::Deref for DRMModeResConnectors {
+    type Target = [u32];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.conns, self.count) }
+    }
+}
+
+impl Drop for DRMModeResConnectors {
+    fn drop(&mut self) {
+        unsafe { libc::free(self.conns as *mut c_void) };
+    }
+}
+
+#[derive(Debug)]
+pub struct DRMModeResEncoders {
+    count: usize,
+    encs: *mut u32,
+}
+
+impl std::ops::Deref for DRMModeResEncoders {
+    type Target = [u32];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.encs, self.count) }
+    }
+}
+
+impl Drop for DRMModeResEncoders {
+    fn drop(&mut self) {
+        unsafe { libc::free(self.encs as *mut c_void) };
+    }
+}
+
+
+#[derive(Debug)]
 pub struct DRMModeRes {
     raw: *const _drmModeRes,
-    pub framebuffers: Vec<u32>,
-    pub crtcs: Vec<u32>,
-    pub connectors: Vec<u32>,
-    pub encoders: Vec<u32>,
+    pub framebuffers: DRMModeResFramebuffers,
+    pub crtcs: DRMModeResCrtcs,
+    pub connectors: DRMModeResConnectors,
+    pub encoders: DRMModeResEncoders,
     pub min_width: u32,
     pub max_width: u32,
     pub min_height: u32,
@@ -173,19 +254,18 @@ impl DRMModeRes {
                 let crtc_count = r.count_crtcs as usize;
                 let conn_count = r.count_connectors as usize;
                 let enc_count = r.count_encoders as usize;
-                let res = unsafe {
+                let res =
                     DRMModeRes {
                         raw: r,
-                        framebuffers: Vec::from_raw_parts(r.fbs, fb_count, fb_count),
-                        crtcs: Vec::from_raw_parts(r.crtcs, crtc_count, crtc_count),
-                        connectors: Vec::from_raw_parts(r.connectors, conn_count, conn_count),
-                        encoders: Vec::from_raw_parts(r.encoders, enc_count, enc_count),
+                        framebuffers: DRMModeResFramebuffers { count: fb_count, fbs: r.fbs },
+                        crtcs: DRMModeResCrtcs { count: crtc_count, crtcs: r.crtcs },
+                        connectors: DRMModeResConnectors { count: conn_count, conns: r.connectors },
+                        encoders: DRMModeResEncoders { count: enc_count, encs: r.encoders },
                         min_width: r.min_width,
                         max_width: r.max_width,
                         min_height: r.min_height,
                         max_height: r.max_height,
-                    }
-                };
+                    };
                 Ok(res)
             },
             None =>
