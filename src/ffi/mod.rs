@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 extern crate libc;
 
+use std::ffi::{CStr, CString};
 use libc::{c_int, c_char, uint16_t, uint32_t, uint64_t, c_void};
 use std::io::{Error, ErrorKind};
 use std::os::unix::io::RawFd;
@@ -32,8 +33,9 @@ type DRMModeResPtr = *const _drmModeRes;
 
 const DRM_DISPLAY_MODE_LEN: usize = 32;
 
+#[derive(Debug)]
 #[repr(C)]
-struct _drmModeModeInfo {
+pub struct _drmModeModeInfo {
     clock: uint32_t,
     hdisplay: uint16_t,
     hsync_start: uint16_t,
@@ -56,6 +58,54 @@ struct _drmModeModeInfo {
 }
 
 type DRMModeModeInfoPtr = *const _drmModeModeInfo;
+
+#[derive(Debug)]
+pub struct DRMDimensionInfo {
+    display: u16,
+    sync_start: u16,
+    sync_end: u16,
+    total: u16
+}
+
+#[derive(Debug)]
+pub struct DRMModeModeInfo {
+    raw: DRMModeModeInfoPtr,
+    clock: u32,
+    hinfo: DRMDimensionInfo,
+    vinfo: DRMDimensionInfo,
+    hskew: u16,
+    vscan: u16,
+    vrefresh: u32,
+    flags: u32,
+    type_: u32,
+    name: CString
+}
+
+impl<'a> DRMModeModeInfo {
+    pub fn new(raw: &_drmModeModeInfo) -> Result<Self, Error> {
+        let name = unsafe { CStr::from_ptr(raw.name.as_ptr()) };
+        Ok(DRMModeModeInfo {
+            raw: raw,
+            clock: raw.clock,
+            hinfo: DRMDimensionInfo { display: raw.hdisplay,
+                                      sync_start: raw.hsync_start,
+                                      sync_end: raw.hsync_end,
+                                      total: raw.htotal
+            },
+            vinfo: DRMDimensionInfo { display: raw.vdisplay,
+                                      sync_start: raw.vsync_start,
+                                      sync_end: raw.vsync_end,
+                                      total: raw.vtotal
+            },
+            hskew: raw.hskew,
+            vscan: raw.vscan,
+            vrefresh: raw.vrefresh,
+            flags: raw.flags,
+            type_: raw.type_,
+            name: name.to_owned()
+        })
+    }
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -281,7 +331,7 @@ impl Drop for DRMModeRes {
 }
 
 #[derive(Debug)]
-struct DRMModeConnectorModes {
+pub struct DRMModeConnectorModes {
     count: usize,
     modes: DRMModeModeInfoPtr,
 }
@@ -373,7 +423,7 @@ pub struct DRMModeConnector<'a> {
     mm_height: u32,
     subpixel: &'a DRMModeSubPixel,
 
-    modes: DRMModeConnectorModes,
+    pub modes: Vec<DRMModeModeInfo>,
 
     props: DRMModeConnectorProps,
     prop_values: DRMModeConnectorPropValues,
@@ -386,6 +436,12 @@ impl<'a> DRMModeConnector<'a> {
         let opt_c = unsafe { drmModeGetConnector(fd, connector_id).as_ref() };
         match opt_c {
             Some(raw) => {
+                let raw_modes = DRMModeConnectorModes { count: raw.count_modes as usize, modes: raw.modes };
+                let mut modes: Vec<DRMModeModeInfo> = Vec::new();
+                for mode in 0..raw_modes.count {
+                    let mode_info = DRMModeModeInfo::new(&raw_modes[mode])?;
+                    modes.push(mode_info);
+                }
                 let c =
                     DRMModeConnector {
                         raw: raw,
@@ -397,7 +453,7 @@ impl<'a> DRMModeConnector<'a> {
                         mm_width: raw.mm_width,
                         mm_height: raw.mm_height,
                         subpixel: &raw.subpixel,
-                        modes: DRMModeConnectorModes { count: raw.count_modes as usize, modes: raw.modes },
+                        modes: modes,
                         props: DRMModeConnectorProps { count: raw.count_props as usize, props: raw.props },
                         prop_values: DRMModeConnectorPropValues { count: raw.count_props as usize, prop_values: raw.prop_values },
                         encoders: DRMModeConnectorEncoders { count: raw.count_encoders as usize, encoders: raw.encoders }
