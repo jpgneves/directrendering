@@ -9,6 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: nix
+      run: |
+        curl https://nixos.org/nix/install | sh
+        . "$HOME"/.nix-profile/etc/profile.d/nix.sh
     - name: Build
       run: cargo build --verbose
     - name: Run tests
