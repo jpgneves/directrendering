@@ -2,7 +2,7 @@
 extern crate libc;
 
 use std::ffi::{CStr, CString};
-use libc::{c_int, c_char, uint16_t, uint32_t, uint64_t, c_void};
+use libc::{c_int, c_char, c_void};
 use std::io::{Error, ErrorKind};
 use std::os::unix::io::RawFd;
 use std::slice;
@@ -11,22 +11,22 @@ use std::slice;
 #[repr(C)]
 struct _drmModeRes {
     count_fbs: c_int,
-    fbs: *mut uint32_t,
+    fbs: *mut u32,
 
     count_crtcs: c_int,
-    crtcs: *mut uint32_t,
+    crtcs: *mut u32,
 
     count_connectors: c_int,
-    connectors: *mut uint32_t,
+    connectors: *mut u32,
 
     count_encoders: c_int,
-    encoders: *mut uint32_t,
+    encoders: *mut u32,
 
-    min_width: uint32_t,
-    max_width: uint32_t,
+    min_width: u32,
+    max_width: u32,
 
-    min_height: uint32_t,
-    max_height: uint32_t,
+    min_height: u32,
+    max_height: u32,
 }
 
 type DRMModeResPtr = *const _drmModeRes;
@@ -36,23 +36,23 @@ const DRM_DISPLAY_MODE_LEN: usize = 32;
 #[derive(Debug)]
 #[repr(C)]
 pub struct _drmModeModeInfo {
-    clock: uint32_t,
-    hdisplay: uint16_t,
-    hsync_start: uint16_t,
-    hsync_end: uint16_t,
-    htotal: uint16_t,
-    hskew: uint16_t,
-    vdisplay: uint16_t,
-    vsync_start: uint16_t,
-    vsync_end: uint16_t,
-    vtotal: uint16_t,
-    vscan: uint16_t,
+    clock: u32,
+    hdisplay: u16,
+    hsync_start: u16,
+    hsync_end: u16,
+    htotal: u16,
+    hskew: u16,
+    vdisplay: u16,
+    vsync_start: u16,
+    vsync_end: u16,
+    vtotal: u16,
+    vscan: u16,
 
-    vrefresh: uint32_t,
+    vrefresh: u32,
 
-    flags: uint32_t,
+    flags: u32,
     #[link_name = "type"]
-    type_: uint32_t,
+    type_: u32,
 
     name: [c_char; DRM_DISPLAY_MODE_LEN],
 }
@@ -152,26 +152,26 @@ enum DRMModeSubPixel {
 #[derive(Debug)]
 #[repr(C)]
 struct _drmModeConnector {
-    connector_id: uint32_t,
-    encoder_id: uint32_t,
+    connector_id: u32,
+    encoder_id: u32,
     connector_type: DRMConnectorType,
-    connector_type_id: uint32_t,
+    connector_type_id: u32,
     connection: DRMModeConnection,
     #[link_name = "mmWidth"]
-    mm_width: uint32_t,
+    mm_width: u32,
     #[link_name = "mmHeight"]
-    mm_height: uint32_t,
+    mm_height: u32,
     subpixel: DRMModeSubPixel,
 
     count_modes: c_int,
     modes: DRMModeModeInfoPtr,
 
     count_props: c_int,
-    props: *mut uint32_t,
-    prop_values: *mut uint64_t,
+    props: *mut u32,
+    prop_values: *mut u64,
 
     count_encoders: c_int,
-    encoders: *mut uint32_t,
+    encoders: *mut u32,
 }
 
 type DRMModeConnectorPtr = *const _drmModeConnector;
@@ -183,7 +183,7 @@ extern "C" {
     fn drmDropMaster(fd: c_int) -> c_int;
     fn drmModeGetResources(fd: c_int) -> DRMModeResPtr;
     fn drmModeFreeResources(ptr: DRMModeResPtr) -> c_void;
-    fn drmModeGetConnector(fd: c_int, connectorId: uint32_t) -> DRMModeConnectorPtr;
+    fn drmModeGetConnector(fd: c_int, connectorId: u32) -> DRMModeConnectorPtr;
     fn drmModeFreeConnector(ptr: DRMModeConnectorPtr) -> c_void;
     fn drmModeFreeModeInfo(ptr: DRMModeModeInfoPtr) -> c_void;
 }
