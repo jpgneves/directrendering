@@ -19,7 +19,10 @@ with pkgs;
 mkShell {
   buildInputs = [
     cacert
+    libdrm
     rustChannel.cargo
     rustChannel.rust
   ];
+
+  LD_LIBRARY_PATH="${libdrm}/lib:$LD_LIBRARY_PATH";
 }
