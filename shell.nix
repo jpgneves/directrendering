@@ -8,7 +8,8 @@ let
 
     ref = "nixos-unstable";
   }) { overlays = [ moz_overlay ]; };
-  rustChannel = pinnedPkgs.rustChannelOf { channel = "1.39.0"; };
+  rustChannel = pinnedPkgs.rustChannelOf { channel = "1.43.0"; };
+  deps = with pinnedPkgs; [ libdrm ];
 in
 
 # This allows overriding pkgs by passing `--arg pkgs ...`
@@ -17,12 +18,10 @@ in
 with pkgs;
 
 mkShell {
-  buildInputs = [
-    cacert
-    libdrm
-    rustChannel.cargo
-    rustChannel.rust
-  ];
+  buildInputs = [ cacert
+                  rustChannel.cargo
+                  rustChannel.rust
+                ] ++ deps;
 
-  LD_LIBRARY_PATH="${libdrm}/lib:$LD_LIBRARY_PATH";
+  LD_LIBRARY_PATH="${stdenv.lib.makeLibraryPath deps}:$LD_LIBRARY_PATH";
 }

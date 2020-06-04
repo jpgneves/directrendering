@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 extern crate libc;
 
+use libc::{c_char, c_int, c_void};
 use std::ffi::{CStr, CString};
-use libc::{c_int, c_char, c_void};
 use std::io::{Error, ErrorKind};
 use std::os::unix::io::RawFd;
 use std::slice;
@@ -64,7 +64,7 @@ pub struct DRMDimensionInfo {
     display: u16,
     sync_start: u16,
     sync_end: u16,
-    total: u16
+    total: u16,
 }
 
 #[derive(Debug)]
@@ -78,7 +78,7 @@ pub struct DRMModeModeInfo {
     vrefresh: u32,
     flags: u32,
     type_: u32,
-    name: CString
+    name: CString,
 }
 
 impl<'a> DRMModeModeInfo {
@@ -87,22 +87,24 @@ impl<'a> DRMModeModeInfo {
         Ok(DRMModeModeInfo {
             raw: raw,
             clock: raw.clock,
-            hinfo: DRMDimensionInfo { display: raw.hdisplay,
-                                      sync_start: raw.hsync_start,
-                                      sync_end: raw.hsync_end,
-                                      total: raw.htotal
+            hinfo: DRMDimensionInfo {
+                display: raw.hdisplay,
+                sync_start: raw.hsync_start,
+                sync_end: raw.hsync_end,
+                total: raw.htotal,
             },
-            vinfo: DRMDimensionInfo { display: raw.vdisplay,
-                                      sync_start: raw.vsync_start,
-                                      sync_end: raw.vsync_end,
-                                      total: raw.vtotal
+            vinfo: DRMDimensionInfo {
+                display: raw.vdisplay,
+                sync_start: raw.vsync_start,
+                sync_end: raw.vsync_end,
+                total: raw.vtotal,
             },
             hskew: raw.hskew,
             vscan: raw.vscan,
             vrefresh: raw.vrefresh,
             flags: raw.flags,
             type_: raw.type_,
-            name: name.to_owned()
+            name: name.to_owned(),
         })
     }
 }
@@ -127,7 +129,7 @@ enum DRMConnectorType {
     EDP,
     VIRTUAL,
     DSI,
-    DPI
+    DPI,
 }
 
 #[derive(Debug)]
@@ -135,7 +137,7 @@ enum DRMConnectorType {
 enum DRMModeConnection {
     Connected = 1,
     Disconnected = 2,
-    UnknownConnection = 3
+    UnknownConnection = 3,
 }
 
 #[derive(Debug)]
@@ -146,7 +148,7 @@ enum DRMModeSubPixel {
     HorizontalBGR = 3,
     VerticalRGB = 4,
     VerticalBGR = 5,
-    None = 6
+    None = 6,
 }
 
 #[derive(Debug)]
@@ -176,7 +178,7 @@ struct _drmModeConnector {
 
 type DRMModeConnectorPtr = *const _drmModeConnector;
 
-#[link(name="drm")]
+#[link(name = "drm")]
 extern "C" {
     fn drmAvailable() -> c_int;
     fn drmSetMaster(fd: c_int) -> c_int;
@@ -280,7 +282,6 @@ impl Drop for DRMModeResEncoders {
     }
 }
 
-
 #[derive(Debug)]
 pub struct DRMModeRes {
     raw: *const _drmModeRes,
@@ -291,7 +292,7 @@ pub struct DRMModeRes {
     pub min_width: u32,
     pub max_width: u32,
     pub min_height: u32,
-    pub max_height: u32
+    pub max_height: u32,
 }
 
 impl DRMModeRes {
@@ -304,22 +305,35 @@ impl DRMModeRes {
                 let crtc_count = r.count_crtcs as usize;
                 let conn_count = r.count_connectors as usize;
                 let enc_count = r.count_encoders as usize;
-                let res =
-                    DRMModeRes {
-                        raw: r,
-                        framebuffers: DRMModeResFramebuffers { count: fb_count, fbs: r.fbs },
-                        crtcs: DRMModeResCrtcs { count: crtc_count, crtcs: r.crtcs },
-                        connectors: DRMModeResConnectors { count: conn_count, conns: r.connectors },
-                        encoders: DRMModeResEncoders { count: enc_count, encs: r.encoders },
-                        min_width: r.min_width,
-                        max_width: r.max_width,
-                        min_height: r.min_height,
-                        max_height: r.max_height,
-                    };
+                let res = DRMModeRes {
+                    raw: r,
+                    framebuffers: DRMModeResFramebuffers {
+                        count: fb_count,
+                        fbs: r.fbs,
+                    },
+                    crtcs: DRMModeResCrtcs {
+                        count: crtc_count,
+                        crtcs: r.crtcs,
+                    },
+                    connectors: DRMModeResConnectors {
+                        count: conn_count,
+                        conns: r.connectors,
+                    },
+                    encoders: DRMModeResEncoders {
+                        count: enc_count,
+                        encs: r.encoders,
+                    },
+                    min_width: r.min_width,
+                    max_width: r.max_width,
+                    min_height: r.min_height,
+                    max_height: r.max_height,
+                };
                 Ok(res)
-            },
-            None =>
-                Err(Error::new(ErrorKind::Other, "Could not get DRM mode resources"))
+            }
+            None => Err(Error::new(
+                ErrorKind::Other,
+                "Could not get DRM mode resources",
+            )),
         }
     }
 }
@@ -436,32 +450,42 @@ impl<'a> DRMModeConnector<'a> {
         let opt_c = unsafe { drmModeGetConnector(fd, connector_id).as_ref() };
         match opt_c {
             Some(raw) => {
-                let raw_modes = DRMModeConnectorModes { count: raw.count_modes as usize, modes: raw.modes };
+                let raw_modes = DRMModeConnectorModes {
+                    count: raw.count_modes as usize,
+                    modes: raw.modes,
+                };
                 let mut modes: Vec<DRMModeModeInfo> = Vec::new();
                 for mode in 0..raw_modes.count {
                     let mode_info = DRMModeModeInfo::new(&raw_modes[mode])?;
                     modes.push(mode_info);
                 }
-                let c =
-                    DRMModeConnector {
-                        raw: raw,
-                        connector_id: raw.connector_id,
-                        encoder_id: raw.encoder_id,
-                        connector_type: &raw.connector_type,
-                        connector_type_id: raw.connector_type_id,
-                        connection: &raw.connection,
-                        mm_width: raw.mm_width,
-                        mm_height: raw.mm_height,
-                        subpixel: &raw.subpixel,
-                        modes: modes,
-                        props: DRMModeConnectorProps { count: raw.count_props as usize, props: raw.props },
-                        prop_values: DRMModeConnectorPropValues { count: raw.count_props as usize, prop_values: raw.prop_values },
-                        encoders: DRMModeConnectorEncoders { count: raw.count_encoders as usize, encoders: raw.encoders }
-                    };
+                let c = DRMModeConnector {
+                    raw: raw,
+                    connector_id: raw.connector_id,
+                    encoder_id: raw.encoder_id,
+                    connector_type: &raw.connector_type,
+                    connector_type_id: raw.connector_type_id,
+                    connection: &raw.connection,
+                    mm_width: raw.mm_width,
+                    mm_height: raw.mm_height,
+                    subpixel: &raw.subpixel,
+                    modes: modes,
+                    props: DRMModeConnectorProps {
+                        count: raw.count_props as usize,
+                        props: raw.props,
+                    },
+                    prop_values: DRMModeConnectorPropValues {
+                        count: raw.count_props as usize,
+                        prop_values: raw.prop_values,
+                    },
+                    encoders: DRMModeConnectorEncoders {
+                        count: raw.count_encoders as usize,
+                        encoders: raw.encoders,
+                    },
+                };
                 Ok(c)
-            },
-            None =>
-                Err(Error::new(ErrorKind::Other, "Unable to get mode connector"))
+            }
+            None => Err(Error::new(ErrorKind::Other, "Unable to get mode connector")),
         }
     }
 }
